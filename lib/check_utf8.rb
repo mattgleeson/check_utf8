@@ -7,15 +7,29 @@ class CheckUtf8
     end
   end
 
+  def log(level, msg)
+    ActiveRecord::Base.logger.send(level, "CheckUtf8: "+msg)
+  end
+
+  def debug(msg); log(:debug, msg); end
+  def warn(msg); log(:warn, msg); end
+  def error(msg); log(:error, msg); end
+
+  def value_is_utf8?(val)
+    val.nil? || val.to_s.is_utf8?
+  end
+
   def check_column(record, column_name)
-    val = record[column_name]
-    if val && !val.to_s.is_utf8?
-      ActiveRecord::Base.logger.warn("CheckUtf8: class=#{record.class.name} id=#{record.id} column=#{column_name} is not utf8!")
+    if !value_is_utf8?(record[column_name])
+      warn("class=#{record.class.name} id=#{record.id} column=#{column_name} is not utf8!")
     else
-      ActiveRecord::Base.logger.debug("CheckUtf8: class=#{record.class.name} id=#{record.id} column=#{column_name} looks ok")
+      debug("class=#{record.class.name} id=#{record.id} column=#{column_name} looks ok")
     end
+  rescue Exception => e
+    error("class=#{record.class.name} id=#{record.id} column=#{column_name} threw an error: #{e}")
   end
 end
 
 ActiveRecord::Base.after_save CheckUtf8.new
+
 
